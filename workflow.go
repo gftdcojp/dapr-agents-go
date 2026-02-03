@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -526,16 +527,7 @@ func matchPattern(pattern, content string) bool {
 	if pattern == "*" {
 		return true
 	}
-	return len(pattern) > 0 && len(content) >= len(pattern) && contains(content, pattern)
-}
-
-func contains(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
+	return len(pattern) > 0 && len(content) >= len(pattern) && strings.Contains(content, pattern)
 }
 
 // HTTPRouter routes HTTP requests to handlers

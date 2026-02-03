@@ -253,7 +253,8 @@ func (s *MCPServer) handleListTools(w http.ResponseWriter, r *http.Request) {
 	// Also expose agents as tools
 	for name, factory := range s.agents {
 		agent := factory()
-		if baseAgent, ok := agent.(*BaseAgent); ok {
+		if true { // Agent interface provides GetTools()
+			baseAgent := agent
 			for _, tool := range baseAgent.GetTools() {
 				schema := tool.Schema()
 				inputSchema := map[string]interface{}{
@@ -328,8 +329,13 @@ func (s *MCPServer) handleToolCall(w http.ResponseWriter, r *http.Request) {
 		// Agent tool
 		if factory, ok := s.agents[parts[0]]; ok {
 			agent := factory()
-			if baseAgent, ok := agent.(*BaseAgent); ok {
-				tool, found = baseAgent.GetTool(parts[1])
+			// Find tool by name from agent's tools
+			for _, t := range agent.GetTools() {
+				if t.Name() == parts[1] {
+					tool = t
+					found = true
+					break
+				}
 			}
 		}
 	} else {
@@ -511,7 +517,8 @@ func (s *MCPServer) handleGetResource(w http.ResponseWriter, r *http.Request) {
 		}
 
 		agent := factory()
-		if baseAgent, ok := agent.(*BaseAgent); ok {
+		if true { // Agent interface provides GetTools()
+			baseAgent := agent
 			tools := baseAgent.GetTools()
 			toolNames := make([]string, len(tools))
 			for i, t := range tools {
@@ -561,7 +568,8 @@ func (s *MCPServer) handleListAgents(w http.ResponseWriter, r *http.Request) {
 	for name, factory := range s.agents {
 		agent := factory()
 		var tools []string
-		if baseAgent, ok := agent.(*BaseAgent); ok {
+		if true { // Agent interface provides GetTools()
+			baseAgent := agent
 			for _, t := range baseAgent.GetTools() {
 				tools = append(tools, t.Name())
 			}
@@ -618,7 +626,8 @@ func (s *MCPServer) handleAgentRun(w http.ResponseWriter, r *http.Request) {
 	}
 
 	agent := factory()
-	if baseAgent, ok := agent.(*BaseAgent); ok {
+	if true { // Agent interface provides GetTools()
+			baseAgent := agent
 		input := &RunInput{
 			Prompt:      req.Prompt,
 			Context:     req.Context,
@@ -711,7 +720,8 @@ func (s *MCPServer) handleSSE(w http.ResponseWriter, r *http.Request) {
 		}
 
 		agent := factory()
-		if baseAgent, ok := agent.(*BaseAgent); ok {
+		if true { // Agent interface provides GetTools()
+			baseAgent := agent
 			input := &RunInput{
 				Prompt:      req.Prompt,
 				Context:     req.Arguments,

@@ -22,10 +22,13 @@ import (
 )
 
 // Agent represents a Dapr Agent that can process tasks using LLM and tools.
-// It embeds actor capabilities for state management and adds agent-specific features.
+// It provides agent-specific features for LLM-based task processing.
 type Agent interface {
-	// Core actor methods
-	actor.Server
+	// Type returns the agent type name
+	Type() string
+
+	// ID returns the agent instance ID
+	ID() string
 
 	// Agent-specific methods
 	Run(ctx context.Context, input *RunInput) (*RunOutput, error)

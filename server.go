@@ -78,16 +78,28 @@ func NewServer(config *ServerConfig) *Server {
 }
 
 // RegisterAgent registers an agent factory with the server
-func (s *Server) RegisterAgent(factory func() actor.ServerContext) {
+// The factory should return something that implements actor.ServerContext
+// BaseAgent implements actor.ServerContext through embedding actor.ServerImplBaseCtx
+func (s *Server) RegisterAgent(factory func() Agent) {
+	// Wrap the factory to return actor.ServerContext
+	wrappedFactory := func() actor.ServerContext {
+		agent := factory()
+		// BaseAgent embeds actor.ServerImplBaseCtx which implements actor.ServerContext
+		if baseAgent, ok := interface{}(agent).(actor.ServerContext); ok {
+			return baseAgent
+		}
+		// Fallback - create a wrapper if needed
+		return nil
+	}
 	agent := factory()
 	agentType := agent.Type()
-	s.agents[agentType] = factory
+	s.agents[agentType] = wrappedFactory
 	s.config.Logger.Printf("Registered agent: %s", agentType)
 }
 
 // RegisterAgentWithConfig creates and registers an agent with the given config
 func (s *Server) RegisterAgentWithConfig(config *AgentConfig) {
-	s.RegisterAgent(func() actor.ServerContext {
+	s.RegisterAgent(func() Agent {
 		return NewBaseAgent(config)
 	})
 }
@@ -330,12 +342,7 @@ func (h *HTTPHandler) HandleHealth(w http.ResponseWriter, r *http.Request) {
 func RunAgent(config *AgentConfig, tools ...Tool) error {
 	server := NewServer(nil)
 
-	agent := NewBaseAgent(config)
-	for _, tool := range tools {
-		agent.RegisterTool(tool)
-	}
-
-	server.RegisterAgent(func() actor.ServerContext {
+	server.RegisterAgent(func() Agent {
 		a := NewBaseAgent(config)
 		for _, tool := range tools {
 			a.RegisterTool(tool)

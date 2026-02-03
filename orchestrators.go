@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"strings"
 	"sync"
 	"time"
 
@@ -371,7 +372,7 @@ func (o *LLMOrchestrator) SelectNextAgent(ctx context.Context, state *Orchestrat
 		if err := json.Unmarshal([]byte(output.Result), &plannerResp); err != nil {
 			// If parsing fails, try to find an agent name in the response
 			for _, a := range o.agents {
-				if contains(output.Result, a.Type) {
+				if strings.Contains(output.Result, a.Type) {
 					return a, nil
 				}
 			}
@@ -449,7 +450,7 @@ Respond with ONLY the agent type name (e.g., "WeatherAgent").`,
 
 	// Find matching agent
 	for _, a := range o.agents {
-		if contains(llmResp.Content, a.Type) {
+		if strings.Contains(llmResp.Content, a.Type) {
 			return a, nil
 		}
 	}
@@ -576,14 +577,14 @@ func NewOrchestrator(orchType string, agents []AgentRef, config map[string]inter
 		return NewLLMOrchestrator(llmConfig)
 
 	case "chain":
-		return NewChainPattern(agents...)
+		// ChainPattern doesn't implement Orchestrator interface directly
+		// It has its own Execute method
+		return nil, fmt.Errorf("chain pattern should be used directly via NewChainPattern, not through orchestrator factory")
 
 	case "parallel":
-		var aggregator func([]AgentResult) interface{}
-		if agg, ok := config["aggregator"].(func([]AgentResult) interface{}); ok {
-			aggregator = agg
-		}
-		return NewParallelPattern(agents, aggregator)
+		// ParallelPattern doesn't implement Orchestrator interface directly
+		// It has its own Execute method
+		return nil, fmt.Errorf("parallel pattern should be used directly via NewParallelPattern, not through orchestrator factory")
 
 	default:
 		return nil, fmt.Errorf("unknown orchestrator type: %s", orchType)
