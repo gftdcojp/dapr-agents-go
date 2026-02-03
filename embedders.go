@@ -582,6 +582,19 @@ func (e *OllamaEmbedder) Embed(ctx context.Context, text string) ([]float64, err
 	return result.Embedding, nil
 }
 
+// EmbedBatch generates embeddings for multiple texts
+func (e *OllamaEmbedder) EmbedBatch(ctx context.Context, texts []string) ([][]float64, error) {
+	embeddings := make([][]float64, len(texts))
+	for i, text := range texts {
+		emb, err := e.Embed(ctx, text)
+		if err != nil {
+			return nil, err
+		}
+		embeddings[i] = emb
+	}
+	return embeddings, nil
+}
+
 // ============================================================================
 // Hugging Face Embedder (Python: SentenceTransformerEmbedder via HF)
 // ============================================================================
@@ -670,6 +683,47 @@ func (e *HuggingFaceEmbedder) Embed(ctx context.Context, text string) ([]float64
 	}
 
 	return embedding, nil
+}
+
+// EmbedBatch generates embeddings for multiple texts
+func (e *HuggingFaceEmbedder) EmbedBatch(ctx context.Context, texts []string) ([][]float64, error) {
+	url := fmt.Sprintf("https://api-inference.huggingface.co/pipeline/feature-extraction/%s", e.model)
+
+	body, err := json.Marshal(map[string]interface{}{
+		"inputs": texts,
+		"options": map[string]interface{}{
+			"wait_for_model": true,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+e.apiKey)
+
+	resp, err := e.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("Hugging Face API error %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	var embeddings [][]float64
+	if err := json.NewDecoder(resp.Body).Decode(&embeddings); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return embeddings, nil
 }
 
 // ============================================================================
