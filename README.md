@@ -297,7 +297,9 @@ See [API Documentation](https://pkg.go.dev/github.com/gftdcojp/dapr-agents-go) f
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+Apache License 2.0 - see [LICENSE](LICENSE) for details.
+
+This project is a Go implementation inspired by [dapr/dapr-agents](https://github.com/dapr/dapr-agents).
 
 ## Contributing
 
