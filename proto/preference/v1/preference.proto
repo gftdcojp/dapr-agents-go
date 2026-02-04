@@ -1,0 +1,174 @@
+syntax = "proto3";
+
+package preference.v1;
+
+option go_package = "github.com/gftdcojp/dapr-agents-go/gen/preference/v1;preferencev1";
+
+// PreferenceService manages user and agent preferences
+service PreferenceService {
+  // GetPreference retrieves a preference by key
+  rpc GetPreference(GetPreferenceRequest) returns (GetPreferenceResponse);
+
+  // SetPreference sets a preference value
+  rpc SetPreference(SetPreferenceRequest) returns (SetPreferenceResponse);
+
+  // DeletePreference deletes a preference
+  rpc DeletePreference(DeletePreferenceRequest) returns (DeletePreferenceResponse);
+
+  // ListPreferences lists all preferences for a scope
+  rpc ListPreferences(ListPreferencesRequest) returns (ListPreferencesResponse);
+
+  // GetLLMConfig retrieves LLM configuration
+  rpc GetLLMConfig(GetLLMConfigRequest) returns (GetLLMConfigResponse);
+
+  // SetLLMConfig sets LLM configuration
+  rpc SetLLMConfig(SetLLMConfigRequest) returns (SetLLMConfigResponse);
+
+  // GetAgentConfig retrieves agent-specific configuration
+  rpc GetAgentConfig(GetAgentConfigRequest) returns (GetAgentConfigResponse);
+
+  // SetAgentConfig sets agent-specific configuration
+  rpc SetAgentConfig(SetAgentConfigRequest) returns (SetAgentConfigResponse);
+}
+
+// Scope defines the preference scope
+enum Scope {
+  SCOPE_UNSPECIFIED = 0;
+  SCOPE_GLOBAL = 1;
+  SCOPE_USER = 2;
+  SCOPE_AGENT = 3;
+  SCOPE_SESSION = 4;
+}
+
+// Preference represents a single preference
+message Preference {
+  string key = 1;
+  string value = 2;
+  Scope scope = 3;
+  string scope_id = 4; // user_id, agent_id, or session_id
+  map<string, string> metadata = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+}
+
+// GetPreferenceRequest
+message GetPreferenceRequest {
+  string key = 1;
+  Scope scope = 2;
+  string scope_id = 3;
+}
+
+// GetPreferenceResponse
+message GetPreferenceResponse {
+  Preference preference = 1;
+}
+
+// SetPreferenceRequest
+message SetPreferenceRequest {
+  string key = 1;
+  string value = 2;
+  Scope scope = 3;
+  string scope_id = 4;
+  map<string, string> metadata = 5;
+}
+
+// SetPreferenceResponse
+message SetPreferenceResponse {
+  Preference preference = 1;
+}
+
+// DeletePreferenceRequest
+message DeletePreferenceRequest {
+  string key = 1;
+  Scope scope = 2;
+  string scope_id = 3;
+}
+
+// DeletePreferenceResponse
+message DeletePreferenceResponse {
+  bool success = 1;
+}
+
+// ListPreferencesRequest
+message ListPreferencesRequest {
+  Scope scope = 1;
+  string scope_id = 2;
+  string key_prefix = 3;
+  int32 page_size = 4;
+  string page_token = 5;
+}
+
+// ListPreferencesResponse
+message ListPreferencesResponse {
+  repeated Preference preferences = 1;
+  string next_page_token = 2;
+}
+
+// LLMConfig represents LLM parameters
+message LLMConfig {
+  string model = 1;
+  string provider = 2;
+  double temperature = 3;
+  int32 max_tokens = 4;
+  double top_p = 5;
+  double frequency_penalty = 6;
+  double presence_penalty = 7;
+  repeated string stop_sequences = 8;
+  map<string, string> extra_params = 9;
+}
+
+// GetLLMConfigRequest
+message GetLLMConfigRequest {
+  string agent_id = 1;
+  string user_id = 2;
+}
+
+// GetLLMConfigResponse
+message GetLLMConfigResponse {
+  LLMConfig config = 1;
+}
+
+// SetLLMConfigRequest
+message SetLLMConfigRequest {
+  string agent_id = 1;
+  string user_id = 2;
+  LLMConfig config = 3;
+}
+
+// SetLLMConfigResponse
+message SetLLMConfigResponse {
+  LLMConfig config = 1;
+}
+
+// AgentConfig represents agent-specific configuration
+message AgentConfig {
+  string agent_id = 1;
+  string name = 2;
+  string description = 3;
+  string system_prompt = 4;
+  repeated string tools = 5;
+  LLMConfig llm_config = 6;
+  int32 max_iterations = 7;
+  bool verbose = 8;
+  map<string, string> metadata = 9;
+}
+
+// GetAgentConfigRequest
+message GetAgentConfigRequest {
+  string agent_id = 1;
+}
+
+// GetAgentConfigResponse
+message GetAgentConfigResponse {
+  AgentConfig config = 1;
+}
+
+// SetAgentConfigRequest
+message SetAgentConfigRequest {
+  AgentConfig config = 1;
+}
+
+// SetAgentConfigResponse
+message SetAgentConfigResponse {
+  AgentConfig config = 1;
+}

@@ -1,0 +1,215 @@
+syntax = "proto3";
+
+package memory.v1;
+
+option go_package = "github.com/gftdcojp/dapr-agents-go/gen/memory/v1;memoryv1";
+
+// MemoryService manages conversation memory and context
+service MemoryService {
+  // AddMessage adds a message to memory
+  rpc AddMessage(AddMessageRequest) returns (AddMessageResponse);
+
+  // AddMessages adds multiple messages to memory
+  rpc AddMessages(AddMessagesRequest) returns (AddMessagesResponse);
+
+  // GetMessages retrieves messages from memory
+  rpc GetMessages(GetMessagesRequest) returns (GetMessagesResponse);
+
+  // GetRelevantMessages retrieves semantically relevant messages (for vector memory)
+  rpc GetRelevantMessages(GetRelevantMessagesRequest) returns (GetRelevantMessagesResponse);
+
+  // ResetMemory clears all messages
+  rpc ResetMemory(ResetMemoryRequest) returns (ResetMemoryResponse);
+
+  // CreateMemoryStore creates a new memory store
+  rpc CreateMemoryStore(CreateMemoryStoreRequest) returns (CreateMemoryStoreResponse);
+
+  // DeleteMemoryStore deletes a memory store
+  rpc DeleteMemoryStore(DeleteMemoryStoreRequest) returns (DeleteMemoryStoreResponse);
+
+  // Embed generates embeddings for text
+  rpc Embed(EmbedRequest) returns (EmbedResponse);
+
+  // EmbedBatch generates embeddings for multiple texts
+  rpc EmbedBatch(EmbedBatchRequest) returns (EmbedBatchResponse);
+
+  // Search performs semantic search
+  rpc Search(SearchRequest) returns (SearchResponse);
+}
+
+// MemoryType
+enum MemoryType {
+  MEMORY_TYPE_UNSPECIFIED = 0;
+  MEMORY_TYPE_LIST = 1;       // Simple in-memory list
+  MEMORY_TYPE_DAPR_STATE = 2; // Dapr state store backed
+  MEMORY_TYPE_VECTOR = 3;     // Vector store with semantic search
+}
+
+// Message represents a conversation message
+message Message {
+  string id = 1;
+  string role = 2;           // user, assistant, system, tool
+  string content = 3;
+  string name = 4;           // for tool messages
+  string tool_call_id = 5;
+  repeated ToolCall tool_calls = 6;
+  map<string, string> metadata = 7;
+  int64 timestamp = 8;
+}
+
+// ToolCall represents a tool call in a message
+message ToolCall {
+  string id = 1;
+  string name = 2;
+  string arguments_json = 3;
+}
+
+// MemoryStoreConfig
+message MemoryStoreConfig {
+  string store_id = 1;
+  MemoryType type = 2;
+  int32 max_size = 3;
+  string dapr_store_name = 4;   // for DAPR_STATE type
+  string embed_component = 5;    // for VECTOR type
+  int32 vocab_size = 6;          // for simple embedder
+  map<string, string> metadata = 7;
+}
+
+// AddMessageRequest
+message AddMessageRequest {
+  string store_id = 1;
+  Message message = 2;
+}
+
+// AddMessageResponse
+message AddMessageResponse {
+  bool success = 1;
+  int32 total_messages = 2;
+}
+
+// AddMessagesRequest
+message AddMessagesRequest {
+  string store_id = 1;
+  repeated Message messages = 2;
+}
+
+// AddMessagesResponse
+message AddMessagesResponse {
+  bool success = 1;
+  int32 total_messages = 2;
+}
+
+// GetMessagesRequest
+message GetMessagesRequest {
+  string store_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+  string role_filter = 4;
+}
+
+// GetMessagesResponse
+message GetMessagesResponse {
+  repeated Message messages = 1;
+  int32 total_count = 2;
+}
+
+// GetRelevantMessagesRequest
+message GetRelevantMessagesRequest {
+  string store_id = 1;
+  string query = 2;
+  int32 k = 3;                // number of results
+  double min_score = 4;       // minimum similarity score
+}
+
+// GetRelevantMessagesResponse
+message GetRelevantMessagesResponse {
+  repeated ScoredMessage messages = 1;
+}
+
+// ScoredMessage
+message ScoredMessage {
+  Message message = 1;
+  double score = 2;
+}
+
+// ResetMemoryRequest
+message ResetMemoryRequest {
+  string store_id = 1;
+}
+
+// ResetMemoryResponse
+message ResetMemoryResponse {
+  bool success = 1;
+}
+
+// CreateMemoryStoreRequest
+message CreateMemoryStoreRequest {
+  MemoryStoreConfig config = 1;
+}
+
+// CreateMemoryStoreResponse
+message CreateMemoryStoreResponse {
+  string store_id = 1;
+  bool success = 2;
+}
+
+// DeleteMemoryStoreRequest
+message DeleteMemoryStoreRequest {
+  string store_id = 1;
+}
+
+// DeleteMemoryStoreResponse
+message DeleteMemoryStoreResponse {
+  bool success = 1;
+}
+
+// EmbedRequest
+message EmbedRequest {
+  string text = 1;
+  string model = 2;
+}
+
+// EmbedResponse
+message EmbedResponse {
+  repeated double embedding = 1;
+  int32 dimensions = 2;
+}
+
+// EmbedBatchRequest
+message EmbedBatchRequest {
+  repeated string texts = 1;
+  string model = 2;
+}
+
+// EmbedBatchResponse
+message EmbedBatchResponse {
+  repeated Embedding embeddings = 1;
+}
+
+// Embedding
+message Embedding {
+  repeated double vector = 1;
+  int32 dimensions = 2;
+}
+
+// SearchRequest
+message SearchRequest {
+  string store_id = 1;
+  string query = 2;
+  int32 top_k = 3;
+  double min_score = 4;
+  map<string, string> filters = 5;
+}
+
+// SearchResponse
+message SearchResponse {
+  repeated SearchResult results = 1;
+}
+
+// SearchResult
+message SearchResult {
+  string id = 1;
+  string content = 2;
+  double score = 3;
+  map<string, string> metadata = 4;
+}

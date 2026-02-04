@@ -1,0 +1,211 @@
+syntax = "proto3";
+
+package orchestrator.v1;
+
+option go_package = "github.com/gftdcojp/dapr-agents-go/gen/orchestrator/v1;orchestratorv1";
+
+// OrchestratorService manages multi-agent orchestration
+service OrchestratorService {
+  // Execute runs an orchestration
+  rpc Execute(ExecuteRequest) returns (ExecuteResponse);
+
+  // ExecuteStream runs an orchestration with streaming results
+  rpc ExecuteStream(ExecuteRequest) returns (stream OrchestrationEvent);
+
+  // SelectNextAgent selects the next agent to execute
+  rpc SelectNextAgent(SelectNextAgentRequest) returns (SelectNextAgentResponse);
+
+  // RegisterOrchestrator registers an orchestrator configuration
+  rpc RegisterOrchestrator(RegisterOrchestratorRequest) returns (RegisterOrchestratorResponse);
+
+  // GetOrchestrator retrieves an orchestrator configuration
+  rpc GetOrchestrator(GetOrchestratorRequest) returns (GetOrchestratorResponse);
+
+  // ListOrchestrators lists all registered orchestrators
+  rpc ListOrchestrators(ListOrchestratorsRequest) returns (ListOrchestratorsResponse);
+
+  // DeleteOrchestrator deletes an orchestrator
+  rpc DeleteOrchestrator(DeleteOrchestratorRequest) returns (DeleteOrchestratorResponse);
+
+  // GetOrchestrationState retrieves the current state of an orchestration
+  rpc GetOrchestrationState(GetOrchestrationStateRequest) returns (GetOrchestrationStateResponse);
+
+  // CancelOrchestration cancels a running orchestration
+  rpc CancelOrchestration(CancelOrchestrationRequest) returns (CancelOrchestrationResponse);
+}
+
+// OrchestratorType
+enum OrchestratorType {
+  ORCHESTRATOR_TYPE_UNSPECIFIED = 0;
+  ORCHESTRATOR_TYPE_RANDOM = 1;
+  ORCHESTRATOR_TYPE_ROUND_ROBIN = 2;
+  ORCHESTRATOR_TYPE_LLM = 3;
+  ORCHESTRATOR_TYPE_CHAIN = 4;
+  ORCHESTRATOR_TYPE_PARALLEL = 5;
+  ORCHESTRATOR_TYPE_CUSTOM = 6;
+}
+
+// AgentRef references an agent
+message AgentRef {
+  string type = 1;
+  string id = 2;
+  map<string, string> metadata = 3;
+}
+
+// OrchestratorConfig
+message OrchestratorConfig {
+  string name = 1;
+  OrchestratorType type = 2;
+  repeated AgentRef agents = 3;
+  int32 max_steps = 4;
+  AgentRef planner_agent = 5;       // for LLM orchestrator
+  string llm_component = 6;          // for LLM orchestrator
+  map<string, string> metadata = 7;
+}
+
+// OrchestrationState
+message OrchestrationState {
+  string orchestration_id = 1;
+  string orchestrator_name = 2;
+  string input_prompt = 3;
+  int32 current_step = 4;
+  int32 max_steps = 5;
+  repeated AgentResult agent_history = 6;
+  map<string, string> context = 7;
+  string last_output = 8;
+  bool is_complete = 9;
+  string error = 10;
+  int64 started_at = 11;
+  int64 updated_at = 12;
+}
+
+// AgentResult
+message AgentResult {
+  string agent_type = 1;
+  string agent_id = 2;
+  string input = 3;
+  string output = 4;
+  string error = 5;
+  int64 duration_ms = 6;
+  map<string, string> metadata = 7;
+}
+
+// MultiAgentInput
+message MultiAgentInput {
+  string prompt = 1;
+  map<string, string> context = 2;
+  int32 max_steps = 3;
+  int64 timeout_ms = 4;
+}
+
+// MultiAgentOutput
+message MultiAgentOutput {
+  string result = 1;
+  repeated AgentResult agent_results = 2;
+  int64 total_duration_ms = 3;
+  string error = 4;
+}
+
+// ExecuteRequest
+message ExecuteRequest {
+  string orchestrator_name = 1;
+  MultiAgentInput input = 2;
+  string orchestration_id = 3;  // optional, auto-generated if empty
+}
+
+// ExecuteResponse
+message ExecuteResponse {
+  string orchestration_id = 1;
+  MultiAgentOutput output = 2;
+}
+
+// OrchestrationEvent
+message OrchestrationEvent {
+  string event_type = 1;  // started, agent_selected, agent_completed, completed, error
+  string orchestration_id = 2;
+  AgentRef agent = 3;
+  AgentResult result = 4;
+  OrchestrationState state = 5;
+  int64 timestamp = 6;
+}
+
+// SelectNextAgentRequest
+message SelectNextAgentRequest {
+  string orchestrator_name = 1;
+  OrchestrationState state = 2;
+}
+
+// SelectNextAgentResponse
+message SelectNextAgentResponse {
+  AgentRef agent = 1;
+  string task = 2;
+  string reasoning = 3;
+  bool is_complete = 4;
+  string final_answer = 5;
+}
+
+// RegisterOrchestratorRequest
+message RegisterOrchestratorRequest {
+  OrchestratorConfig config = 1;
+}
+
+// RegisterOrchestratorResponse
+message RegisterOrchestratorResponse {
+  string name = 1;
+  bool success = 2;
+}
+
+// GetOrchestratorRequest
+message GetOrchestratorRequest {
+  string name = 1;
+}
+
+// GetOrchestratorResponse
+message GetOrchestratorResponse {
+  OrchestratorConfig config = 1;
+}
+
+// ListOrchestratorsRequest
+message ListOrchestratorsRequest {
+  OrchestratorType type = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+// ListOrchestratorsResponse
+message ListOrchestratorsResponse {
+  repeated OrchestratorConfig configs = 1;
+  string next_page_token = 2;
+}
+
+// DeleteOrchestratorRequest
+message DeleteOrchestratorRequest {
+  string name = 1;
+}
+
+// DeleteOrchestratorResponse
+message DeleteOrchestratorResponse {
+  bool success = 1;
+}
+
+// GetOrchestrationStateRequest
+message GetOrchestrationStateRequest {
+  string orchestration_id = 1;
+}
+
+// GetOrchestrationStateResponse
+message GetOrchestrationStateResponse {
+  OrchestrationState state = 1;
+}
+
+// CancelOrchestrationRequest
+message CancelOrchestrationRequest {
+  string orchestration_id = 1;
+  string reason = 2;
+}
+
+// CancelOrchestrationResponse
+message CancelOrchestrationResponse {
+  bool success = 1;
+  OrchestrationState state = 2;
+}

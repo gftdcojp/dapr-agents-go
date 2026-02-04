@@ -1,0 +1,327 @@
+syntax = "proto3";
+
+package observability.v1;
+
+option go_package = "github.com/gftdcojp/dapr-agents-go/gen/observability/v1;observabilityv1";
+
+// ObservabilityService provides tracing, metrics, and logging for agents
+service ObservabilityService {
+  // RecordSpan records a trace span
+  rpc RecordSpan(RecordSpanRequest) returns (RecordSpanResponse);
+
+  // RecordAgentSpan records an agent execution span
+  rpc RecordAgentSpan(RecordAgentSpanRequest) returns (RecordAgentSpanResponse);
+
+  // RecordToolSpan records a tool execution span
+  rpc RecordToolSpan(RecordToolSpanRequest) returns (RecordToolSpanResponse);
+
+  // RecordLLMSpan records an LLM call span
+  rpc RecordLLMSpan(RecordLLMSpanRequest) returns (RecordLLMSpanResponse);
+
+  // RecordMetric records a metric
+  rpc RecordMetric(RecordMetricRequest) returns (RecordMetricResponse);
+
+  // RecordEvent records an event
+  rpc RecordEvent(RecordEventRequest) returns (RecordEventResponse);
+
+  // GetTraces retrieves traces
+  rpc GetTraces(GetTracesRequest) returns (GetTracesResponse);
+
+  // GetMetrics retrieves metrics
+  rpc GetMetrics(GetMetricsRequest) returns (GetMetricsResponse);
+
+  // GetEvents retrieves events
+  rpc GetEvents(GetEventsRequest) returns (GetEventsResponse);
+
+  // StreamEvents streams events in real-time
+  rpc StreamEvents(StreamEventsRequest) returns (stream Event);
+
+  // GetConfig retrieves observability configuration
+  rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
+
+  // SetConfig sets observability configuration
+  rpc SetConfig(SetConfigRequest) returns (SetConfigResponse);
+}
+
+// ExporterType
+enum ExporterType {
+  EXPORTER_TYPE_UNSPECIFIED = 0;
+  EXPORTER_TYPE_OTLP = 1;
+  EXPORTER_TYPE_ZIPKIN = 2;
+  EXPORTER_TYPE_CONSOLE = 3;
+  EXPORTER_TYPE_PROMETHEUS = 4;
+}
+
+// SpanKind
+enum SpanKind {
+  SPAN_KIND_UNSPECIFIED = 0;
+  SPAN_KIND_INTERNAL = 1;
+  SPAN_KIND_SERVER = 2;
+  SPAN_KIND_CLIENT = 3;
+  SPAN_KIND_PRODUCER = 4;
+  SPAN_KIND_CONSUMER = 5;
+}
+
+// MetricType
+enum MetricType {
+  METRIC_TYPE_UNSPECIFIED = 0;
+  METRIC_TYPE_COUNTER = 1;
+  METRIC_TYPE_GAUGE = 2;
+  METRIC_TYPE_HISTOGRAM = 3;
+}
+
+// EventSeverity
+enum EventSeverity {
+  EVENT_SEVERITY_UNSPECIFIED = 0;
+  EVENT_SEVERITY_DEBUG = 1;
+  EVENT_SEVERITY_INFO = 2;
+  EVENT_SEVERITY_WARN = 3;
+  EVENT_SEVERITY_ERROR = 4;
+  EVENT_SEVERITY_FATAL = 5;
+}
+
+// Span represents a trace span
+message Span {
+  string trace_id = 1;
+  string span_id = 2;
+  string parent_span_id = 3;
+  string name = 4;
+  SpanKind kind = 5;
+  int64 start_time = 6;
+  int64 end_time = 7;
+  int64 duration_ms = 8;
+  map<string, string> attributes = 9;
+  repeated SpanEvent events = 10;
+  SpanStatus status = 11;
+}
+
+// SpanEvent
+message SpanEvent {
+  string name = 1;
+  int64 timestamp = 2;
+  map<string, string> attributes = 3;
+}
+
+// SpanStatus
+message SpanStatus {
+  int32 code = 1;  // 0=UNSET, 1=OK, 2=ERROR
+  string message = 2;
+}
+
+// AgentSpan represents an agent execution span
+message AgentSpan {
+  Span span = 1;
+  string agent_type = 2;
+  string agent_id = 3;
+  string input = 4;
+  string output = 5;
+  int32 step_count = 6;
+  repeated ToolCallEvent tool_calls = 7;
+  repeated LLMCallEvent llm_calls = 8;
+}
+
+// ToolCallEvent
+message ToolCallEvent {
+  string tool_name = 1;
+  string arguments_json = 2;
+  string result_json = 3;
+  int64 duration_ms = 4;
+  bool success = 5;
+  string error = 6;
+}
+
+// LLMCallEvent
+message LLMCallEvent {
+  string model = 1;
+  string provider = 2;
+  int32 input_tokens = 3;
+  int32 output_tokens = 4;
+  int64 duration_ms = 5;
+  int32 tool_calls = 6;
+}
+
+// ToolSpan represents a tool execution span
+message ToolSpan {
+  Span span = 1;
+  string tool_name = 2;
+  int32 args_count = 3;
+  bool success = 4;
+}
+
+// LLMSpan represents an LLM call span
+message LLMSpan {
+  Span span = 1;
+  string model = 2;
+  string provider = 3;
+  int32 input_tokens = 4;
+  int32 output_tokens = 5;
+  int32 total_tokens = 6;
+  int32 tool_calls = 7;
+}
+
+// Metric represents a metric data point
+message Metric {
+  string name = 1;
+  MetricType type = 2;
+  double value = 3;
+  map<string, string> labels = 4;
+  int64 timestamp = 5;
+}
+
+// Event represents a log event
+message Event {
+  string id = 1;
+  string name = 2;
+  EventSeverity severity = 3;
+  string message = 4;
+  map<string, string> attributes = 5;
+  string trace_id = 6;
+  string span_id = 7;
+  int64 timestamp = 8;
+}
+
+// ObservabilityConfig
+message ObservabilityConfig {
+  string service_name = 1;
+  string service_version = 2;
+  string environment = 3;
+  ExporterType exporter_type = 4;
+  string otlp_endpoint = 5;
+  string otlp_protocol = 6;  // grpc or http
+  string zipkin_endpoint = 7;
+  double sample_rate = 8;
+  bool enable_console_exporter = 9;
+  map<string, string> extra_config = 10;
+}
+
+// RecordSpanRequest
+message RecordSpanRequest {
+  Span span = 1;
+}
+
+// RecordSpanResponse
+message RecordSpanResponse {
+  bool success = 1;
+}
+
+// RecordAgentSpanRequest
+message RecordAgentSpanRequest {
+  AgentSpan span = 1;
+}
+
+// RecordAgentSpanResponse
+message RecordAgentSpanResponse {
+  bool success = 1;
+}
+
+// RecordToolSpanRequest
+message RecordToolSpanRequest {
+  ToolSpan span = 1;
+}
+
+// RecordToolSpanResponse
+message RecordToolSpanResponse {
+  bool success = 1;
+}
+
+// RecordLLMSpanRequest
+message RecordLLMSpanRequest {
+  LLMSpan span = 1;
+}
+
+// RecordLLMSpanResponse
+message RecordLLMSpanResponse {
+  bool success = 1;
+}
+
+// RecordMetricRequest
+message RecordMetricRequest {
+  Metric metric = 1;
+}
+
+// RecordMetricResponse
+message RecordMetricResponse {
+  bool success = 1;
+}
+
+// RecordEventRequest
+message RecordEventRequest {
+  Event event = 1;
+}
+
+// RecordEventResponse
+message RecordEventResponse {
+  bool success = 1;
+}
+
+// GetTracesRequest
+message GetTracesRequest {
+  string service_name = 1;
+  string trace_id = 2;
+  int64 start_time = 3;
+  int64 end_time = 4;
+  int32 limit = 5;
+}
+
+// GetTracesResponse
+message GetTracesResponse {
+  repeated Span spans = 1;
+}
+
+// GetMetricsRequest
+message GetMetricsRequest {
+  string metric_name = 1;
+  map<string, string> labels = 2;
+  int64 start_time = 3;
+  int64 end_time = 4;
+  int32 limit = 5;
+}
+
+// GetMetricsResponse
+message GetMetricsResponse {
+  repeated Metric metrics = 1;
+}
+
+// GetEventsRequest
+message GetEventsRequest {
+  string service_name = 1;
+  EventSeverity min_severity = 2;
+  string trace_id = 3;
+  int64 start_time = 4;
+  int64 end_time = 5;
+  int32 limit = 6;
+}
+
+// GetEventsResponse
+message GetEventsResponse {
+  repeated Event events = 1;
+}
+
+// StreamEventsRequest
+message StreamEventsRequest {
+  string service_name = 1;
+  EventSeverity min_severity = 2;
+  repeated string event_names = 3;
+}
+
+// GetConfigRequest
+message GetConfigRequest {
+  string service_name = 1;
+}
+
+// GetConfigResponse
+message GetConfigResponse {
+  ObservabilityConfig config = 1;
+}
+
+// SetConfigRequest
+message SetConfigRequest {
+  string service_name = 1;
+  ObservabilityConfig config = 2;
+}
+
+// SetConfigResponse
+message SetConfigResponse {
+  bool success = 1;
+  ObservabilityConfig config = 2;
+}

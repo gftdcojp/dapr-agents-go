@@ -1,0 +1,237 @@
+syntax = "proto3";
+
+package workflow.v1;
+
+option go_package = "github.com/gftdcojp/dapr-agents-go/gen/workflow/v1;workflowv1";
+
+// WorkflowService manages workflow definitions and executions
+service WorkflowService {
+  // RegisterWorkflow registers a new workflow definition
+  rpc RegisterWorkflow(RegisterWorkflowRequest) returns (RegisterWorkflowResponse);
+
+  // GetWorkflow retrieves a workflow definition
+  rpc GetWorkflow(GetWorkflowRequest) returns (GetWorkflowResponse);
+
+  // ListWorkflows lists all registered workflows
+  rpc ListWorkflows(ListWorkflowsRequest) returns (ListWorkflowsResponse);
+
+  // DeleteWorkflow deletes a workflow definition
+  rpc DeleteWorkflow(DeleteWorkflowRequest) returns (DeleteWorkflowResponse);
+
+  // StartWorkflow starts a new workflow instance
+  rpc StartWorkflow(StartWorkflowRequest) returns (StartWorkflowResponse);
+
+  // GetWorkflowState retrieves the state of a workflow instance
+  rpc GetWorkflowState(GetWorkflowStateRequest) returns (GetWorkflowStateResponse);
+
+  // ListWorkflowInstances lists workflow instances
+  rpc ListWorkflowInstances(ListWorkflowInstancesRequest) returns (ListWorkflowInstancesResponse);
+
+  // CancelWorkflow cancels a running workflow
+  rpc CancelWorkflow(CancelWorkflowRequest) returns (CancelWorkflowResponse);
+
+  // SuspendWorkflow suspends a running workflow
+  rpc SuspendWorkflow(SuspendWorkflowRequest) returns (SuspendWorkflowResponse);
+
+  // ResumeWorkflow resumes a suspended workflow
+  rpc ResumeWorkflow(ResumeWorkflowRequest) returns (ResumeWorkflowResponse);
+
+  // WatchWorkflow watches workflow state changes (streaming)
+  rpc WatchWorkflow(WatchWorkflowRequest) returns (stream WorkflowEvent);
+}
+
+// WorkflowStatus
+enum WorkflowStatus {
+  WORKFLOW_STATUS_UNSPECIFIED = 0;
+  WORKFLOW_STATUS_PENDING = 1;
+  WORKFLOW_STATUS_RUNNING = 2;
+  WORKFLOW_STATUS_COMPLETED = 3;
+  WORKFLOW_STATUS_FAILED = 4;
+  WORKFLOW_STATUS_CANCELLED = 5;
+  WORKFLOW_STATUS_SUSPENDED = 6;
+}
+
+// WorkflowDefinition
+message WorkflowDefinition {
+  string name = 1;
+  string description = 2;
+  repeated StepDefinition steps = 3;
+  RetryPolicy default_retry = 4;
+  map<string, string> metadata = 5;
+}
+
+// StepDefinition
+message StepDefinition {
+  string name = 1;
+  string handler = 2;
+  RetryPolicy retry = 3;
+  int64 timeout_ms = 4;
+  map<string, string> metadata = 5;
+}
+
+// RetryPolicy
+message RetryPolicy {
+  int32 max_attempts = 1;
+  int64 initial_interval_ms = 2;
+  int64 max_interval_ms = 3;
+  double multiplier = 4;
+}
+
+// WorkflowState
+message WorkflowState {
+  string instance_id = 1;
+  string workflow_name = 2;
+  WorkflowStatus status = 3;
+  string input_json = 4;
+  string output_json = 5;
+  string error = 6;
+  string current_step = 7;
+  repeated StepEntry steps = 8;
+  map<string, string> metadata = 9;
+  int64 created_at = 10;
+  int64 updated_at = 11;
+  int64 completed_at = 12;
+}
+
+// StepEntry
+message StepEntry {
+  string name = 1;
+  string input_json = 2;
+  string output_json = 3;
+  string error = 4;
+  int64 started_at = 5;
+  int64 completed_at = 6;
+  int64 duration_ms = 7;
+  map<string, string> metadata = 8;
+}
+
+// RegisterWorkflowRequest
+message RegisterWorkflowRequest {
+  WorkflowDefinition definition = 1;
+}
+
+// RegisterWorkflowResponse
+message RegisterWorkflowResponse {
+  string name = 1;
+  bool success = 2;
+}
+
+// GetWorkflowRequest
+message GetWorkflowRequest {
+  string name = 1;
+}
+
+// GetWorkflowResponse
+message GetWorkflowResponse {
+  WorkflowDefinition definition = 1;
+}
+
+// ListWorkflowsRequest
+message ListWorkflowsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+// ListWorkflowsResponse
+message ListWorkflowsResponse {
+  repeated WorkflowDefinition definitions = 1;
+  string next_page_token = 2;
+}
+
+// DeleteWorkflowRequest
+message DeleteWorkflowRequest {
+  string name = 1;
+}
+
+// DeleteWorkflowResponse
+message DeleteWorkflowResponse {
+  bool success = 1;
+}
+
+// StartWorkflowRequest
+message StartWorkflowRequest {
+  string workflow_name = 1;
+  string instance_id = 2;
+  string input_json = 3;
+  map<string, string> metadata = 4;
+}
+
+// StartWorkflowResponse
+message StartWorkflowResponse {
+  string instance_id = 1;
+  WorkflowStatus status = 2;
+}
+
+// GetWorkflowStateRequest
+message GetWorkflowStateRequest {
+  string instance_id = 1;
+}
+
+// GetWorkflowStateResponse
+message GetWorkflowStateResponse {
+  WorkflowState state = 1;
+}
+
+// ListWorkflowInstancesRequest
+message ListWorkflowInstancesRequest {
+  string workflow_name = 1;
+  WorkflowStatus status = 2;
+  int32 page_size = 3;
+  string page_token = 4;
+}
+
+// ListWorkflowInstancesResponse
+message ListWorkflowInstancesResponse {
+  repeated WorkflowState instances = 1;
+  string next_page_token = 2;
+}
+
+// CancelWorkflowRequest
+message CancelWorkflowRequest {
+  string instance_id = 1;
+  string reason = 2;
+}
+
+// CancelWorkflowResponse
+message CancelWorkflowResponse {
+  bool success = 1;
+  WorkflowState state = 2;
+}
+
+// SuspendWorkflowRequest
+message SuspendWorkflowRequest {
+  string instance_id = 1;
+  string reason = 2;
+}
+
+// SuspendWorkflowResponse
+message SuspendWorkflowResponse {
+  bool success = 1;
+  WorkflowState state = 2;
+}
+
+// ResumeWorkflowRequest
+message ResumeWorkflowRequest {
+  string instance_id = 1;
+}
+
+// ResumeWorkflowResponse
+message ResumeWorkflowResponse {
+  bool success = 1;
+  WorkflowState state = 2;
+}
+
+// WatchWorkflowRequest
+message WatchWorkflowRequest {
+  string instance_id = 1;
+}
+
+// WorkflowEvent
+message WorkflowEvent {
+  string event_type = 1; // status_changed, step_started, step_completed, step_failed
+  string instance_id = 2;
+  WorkflowState state = 3;
+  string step_name = 4;
+  string data_json = 5;
+  int64 timestamp = 6;
+}
